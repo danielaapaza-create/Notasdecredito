@@ -16,16 +16,24 @@ Arriba a la derecha, **Ver como** cambia el perfil (analista, jefe, auditor, cli
 ```
 index.html            Punto de entrada
 css/styles.css        Estilos (variables de diseño en :root)
-js/util.js            Formatos es-PE, estados, normalización de razón social, íconos
+js/cruce.js           Algoritmo de cruce registro ↔ factura SAP (reglas del negocio)
+js/util.js            Formatos es-PE, estados, íconos
 js/store.js           Consultas sobre las tablas (equivalentes a vistas SQL)
 js/components.js      Componentes: KPI, encabezados de sección, línea de tiempo del caso
 js/pages/*.js         Una pantalla por archivo
 js/app.js             Menú por perfil, enrutador (#/ruta), reloj
 data/*.js             Datos ficticios, una tabla por archivo
 scripts/generar-datos.js  Regenera data/*.js (node scripts/generar-datos.js)
+scripts/verificar-cruce.js  Ejecuta el algoritmo de cruce sobre los datos y lo compara con la tabla cruce
 scripts/empaquetar.js     Genera un único HTML para compartir
 assets/logo.svg       Marcador de posición del logo (reemplazar por el oficial)
 ```
+
+## Acciones simuladas
+
+En el detalle del caso (perfil analista) se puede **ejecutar el cruce** (reporte 291), **asignar la factura** de un registro
+en conflicto o por revisar (reporte 289) y **pasar a SAP** / **enviar a aprobación**. Los cambios viven en memoria:
+al recargar la página se vuelve a los datos de ejemplo.
 
 ## Datos (forma de tablas SQL)
 

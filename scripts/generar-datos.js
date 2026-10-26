@@ -32,6 +32,7 @@ function isoWeek(iso) {
 }
 const ddmmyy = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)}`;
 const ts = (iso, hh, mm) => `${iso}T${pad(hh, 2)}:${pad(mm, 2)}:00`;
+const masMin = (isoDT, min) => new Date(Date.parse(isoDT + 'Z') + min * 60000).toISOString().slice(0, 19);
 
 // Días sin extracción SAP (huecos) y días cargados dos veces (duplicados).
 const HUECOS = ['2026-10-17', '2026-10-24'];
@@ -106,7 +107,7 @@ function linea(sexo, ctd) {
   const precio = 7.8 + rnd() * 0.8;
   return { sexo, material: mat.codigo, material_desc: mat.desc, lote: nuevoLote(), ctd, peso, valor: r2(peso * precio) };
 }
-const carga = () => int(36, 70) * 50 + pick([0, 0, 10, 20, 30, 40]);
+const carga = () => int(36, 70) * 50 + int(0, 49);
 function nuevaFactura(fecha, sexos, opts = {}) {
   const c = opts.centro || pick(CENTROS);
   const f = {
@@ -306,7 +307,7 @@ for (const p of PLANES) {
   const d0 = envio.slice(0, 10);
   addEvento(rep, envio, aud.contacto, 'recepcion', `${aud.nombre} envió "${rep.archivo}" (${regs.length} registros).`);
   if (!ESTADOS_CON_CRUCE.includes(p.estado)) {
-    addEvento(rep, ts(d0, 8, 42), 'Sistema', 'recepcion', `Archivo leído: ${regs.length} registros, ${procede.length} proceden a NC. En cola para el cruce.`);
+    addEvento(rep, masMin(envio, 1), 'Sistema', 'recepcion', `Archivo leído: ${regs.length} registros, ${procede.length} proceden a NC. En cola para el cruce.`);
     continue;
   }
   const crucesRep = cruceTmp.filter((c) => c.rep === rep);
@@ -332,7 +333,7 @@ for (const p of PLANES) {
   }
   const llenos = crucesRep.filter((c) => c.estado === 'LLENADO');
   const pendientes = crucesRep.filter((c) => !['LLENADO', 'YA REGISTRADO'].includes(c.estado));
-  addEvento(rep, ts(d0, int(9, 10), int(0, 59)), 'Sistema', 'cruce',
+  addEvento(rep, masMin(envio, int(25, 70)), 'Sistema', 'cruce',
     `Cruce con facturas SAP: ${llenos.length} con factura${pendientes.length ? `, ${pendientes.length} pendiente${pendientes.length > 1 ? 's' : ''}` : ''}${crucesRep.some((c) => c.nc_existente) ? ', 1 con NC existente' : ''}.`);
   if (p.estado === 'en_cruce') {
     addEvento(rep, ts(d0, 11, 20), ANALISTA, 'observacion', 'Revisando conflictos y diferencias de unidades antes de pasar a SAP.');

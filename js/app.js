@@ -145,7 +145,7 @@
     b.setAttribute('aria-label', estado.colapsado ? 'Expandir menú' : 'Colapsar menú');
   }
 
-  function render() {
+  function render(mantenerScroll = false) {
     let { ruta, params } = leerRuta();
     // Si la ruta no corresponde al perfil, ir a su inicio (el detalle de caso es visible para todos).
     if (ruta !== 'caso' && !rutasDelPerfil(estado.perfil).includes(ruta)) {
@@ -156,10 +156,32 @@
     const pagina = (window.Pages[ruta] || window.Pages.pendiente)({ ruta, params, perfil: estado.perfil });
     document.getElementById('titulo').textContent = pagina.titulo;
     document.getElementById('subtitulo').textContent = pagina.subtitulo || '';
-    document.getElementById('vista').innerHTML = pagina.html;
+    // Nodo nuevo en cada render: así no se acumulan los eventos que agrega cada página.
+    const anterior = document.getElementById('vista');
+    const vista = anterior.cloneNode(false);
+    anterior.replaceWith(vista);
+    vista.innerHTML = pagina.html;
+    if (pagina.montar) pagina.montar(vista);
     document.title = `${pagina.titulo} · Notas de Crédito AVV`;
     cerrarMenuMovil();
-    window.scrollTo(0, 0);
+    if (!mantenerScroll) window.scrollTo(0, 0);
+  }
+
+  // Aviso breve en la esquina inferior (acciones simuladas).
+  let tToast;
+  function toast(msg, tono = 'verde') {
+    let el = document.getElementById('toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'toast';
+      el.className = 'toast';
+      el.setAttribute('role', 'status');
+      document.body.appendChild(el);
+    }
+    el.className = `toast toast--${tono} toast--visible`;
+    el.textContent = msg;
+    clearTimeout(tToast);
+    tToast = setTimeout(() => el.classList.remove('toast--visible'), 3800);
   }
 
   function reloj() {
@@ -171,6 +193,12 @@
 
   shell();
   reloj();
-  window.addEventListener('hashchange', render);
+  window.addEventListener('hashchange', () => render());
+  window.App = {
+    render: () => render(true),
+    toast,
+    get perfil() { return estado.perfil; },
+    usuario: () => window.DB.usuario.find((u) => u.perfil === estado.perfil),
+  };
   render();
 })();

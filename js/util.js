@@ -39,16 +39,8 @@
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // "Corporación Aldajar Eirl" y "CORPORACION ALDAJAR E.I.R.L." → "CORPORACION ALDAJAR"
-  function normalizarRazonSocial(s) {
-    return String(s || '')
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .toUpperCase()
-      .replace(/[^A-Z0-9 ]/g, ' ')
-      .replace(/\b(S ?A ?C|S ?A ?A|S ?R ?L|E ?I ?R ?L|S ?A)\b/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-  }
+  // "Corporación Aldajar Eirl" y "CORPORACION ALDAJAR E.I.R.L." → "CORPORACION ALDAJAR" (regla del cruce)
+  const normalizarRazonSocial = (s) => window.Cruce.normalizar(s);
 
   // Estados del caso (reporte) con su color de chip.
   const ESTADO_CASO = {
@@ -106,6 +98,10 @@
     alerta: '<path d="M12 8v5M12 16.5v.5"/><circle cx="12" cy="12" r="9"/>',
     reloj: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
     guion: '<path d="M7 12h10"/>',
+    buscar: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    atras: '<path d="M19 12H5"/><path d="m11 6-6 6 6 6"/>',
+    abajo: '<path d="m6 9 6 6 6-6"/>',
+    arriba: '<path d="m6 15 6-6 6 6"/>',
     obra: '<path d="M3 21h18"/><path d="M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/>',
   };
   function icono(nombre) {
