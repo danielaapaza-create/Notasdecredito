@@ -4,7 +4,6 @@
   const { esc, icono } = window.U;
 
   const PROXIMAS = {
-    'por-aprobar': { titulo: 'Por aprobar', sub: 'Archivos de post descarga que esperan el % de aprobación.', entrega: 3, items: ['Bandeja del jefe de facturación', '% de aprobación para el archivo completo, comentario, Aprobar / Rechazar'] },
     documentos: { titulo: 'Documentos SAP', sub: 'Avance por registro: pedido, entrega, traslado, NC y SUNAT.', entrega: 4, items: ['Números de documento SAP por etapa', 'Errores de SAP con su mensaje', 'Vista previa del correo de NC y botón Enviar (simulado)'] },
     facturacion: { titulo: 'Facturación diaria', sub: 'Extracción ZSDR005 (layout /RALDAZA) y BBDD de facturas.', entrega: 4, items: ['Calendario de días cargados', 'Días faltantes y cargas duplicadas'] },
     subir: { titulo: 'Subir reporte', sub: 'Portal del auditor.', entrega: 5, items: ['Elegir Despacho o Post descarga', 'Carga simulada con vista previa de filas'] },

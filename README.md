@@ -32,7 +32,8 @@ assets/logo.svg       Logo de San Fernando (vector)
 ## Acciones simuladas
 
 En el detalle del caso (perfil analista) se puede **ejecutar el cruce** (reporte 291), **asignar la factura** de un registro
-en conflicto o por revisar (reporte 289) y **pasar a SAP** / **enviar a aprobación**. Los cambios viven en memoria:
+en conflicto o por revisar (reporte 289) y **pasar a SAP** / **enviar a aprobación**. Con el perfil jefe, en **Por aprobar** se define el % del archivo
+(reportes 288 y 290) y se aprueba o rechaza (el rechazo pide comentario). Los cambios viven en memoria:
 al recargar la página se vuelve a los datos de ejemplo.
 
 ## Datos (forma de tablas SQL)

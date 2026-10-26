@@ -118,6 +118,27 @@
     return filas.sort((a, b) => a.factura.nro_factura.localeCompare(b.factura.nro_factura));
   }
 
+  // Impacto de un % sobre los registros con factura: UND, KG y monto (V.NET/DEV).
+  // V.NET/DEV = (valor neto / peso neto de la factura) × KG devueltos (supuesto por confirmar).
+  function impacto(c, pct) {
+    const filas = c.registros.filter((r) => r.procede).map((r) => {
+      const cr = cruceDe(r.id);
+      const f = cr && cr.estado === 'LLENADO' && cr.factura_id ? facturas[cr.factura_id] : null;
+      const und = Math.round((r.und_reconocer * pct) / 100);
+      const kg = Math.round(r.kg_reconocer * pct) / 100;
+      const monto = f ? Math.round((f.valor_neto / f.peso_neto) * kg * 100) / 100 : null;
+      return { registro: r, cruce: cr, factura: f, und, kg, monto };
+    });
+    const conFactura = filas.filter((x) => x.factura);
+    return {
+      filas,
+      und: conFactura.reduce((a, x) => a + x.und, 0),
+      kg: Math.round(conFactura.reduce((a, x) => a + x.kg, 0) * 100) / 100,
+      monto: Math.round(conFactura.reduce((a, x) => a + x.monto, 0) * 100) / 100,
+      sinFactura: filas.filter((x) => !x.factura),
+    };
+  }
+
   // ---------- acciones simuladas ----------
   const ahora = () => {
     const d = new Date();
@@ -166,9 +187,23 @@
     }
   }
 
+  function aprobar(numero, pct, comentario, actor) {
+    const rep = reportePorNumero(numero);
+    DB.aprobacion.push({ reporte_id: rep.id, porcentaje: pct, aprobador: actor, fecha: ahora(), comentario: comentario || '', resultado: 'aprobado' });
+    rep.estado = 'en_sap';
+    registrarEvento(rep, actor, 'aprobacion', `Jefe de facturación aprobó el ${pct} % del archivo.${comentario ? ` "${comentario}"` : ''}`);
+  }
+
+  function rechazar(numero, comentario, actor) {
+    const rep = reportePorNumero(numero);
+    DB.aprobacion.push({ reporte_id: rep.id, porcentaje: 0, aprobador: actor, fecha: ahora(), comentario, resultado: 'rechazado' });
+    rep.estado = 'rechazado';
+    registrarEvento(rep, actor, 'observacion', `Jefe de facturación rechazó el archivo: "${comentario}"`);
+  }
+
   window.S = {
     auditores, facturas, cruceDe, reportePorNumero, registrosDe, docsDe, eventosDe, porcentaje,
     caso, casos, motivoAtencion, severidad, saldoFacturas,
-    ejecutarCruce, asignarFactura, pasarASap,
+    impacto, ejecutarCruce, asignarFactura, pasarASap, aprobar, rechazar,
   };
 })();

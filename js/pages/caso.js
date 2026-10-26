@@ -80,7 +80,7 @@
   }
 
   function tablaRegistros(c, puedeEditar) {
-    const conPct = c.flujo === 'postdescarga';
+    const conPct = c.flujo === 'postdescarga' && c.pct != null;
     const facturasRepetidas = {};
     c.cruces.forEach((cr) => {
       if (!cr.factura_id) return;
@@ -192,9 +192,9 @@
   function siguientePaso(c, perfil) {
     if (perfil !== 'analista') {
       if (c.estado === 'pendiente_aprobacion' && perfil === 'jefe') {
-        return { tono: 'naranja', texto: 'Este archivo espera que definas el % de aprobación.', boton: '<a class="btn" href="#/por-aprobar">Ir a Por aprobar</a>' };
+        return { tono: 'naranja', texto: 'Este archivo espera que definas el % de aprobación.', boton: '<button type="button" class="btn" data-accion="ir-aprobacion">Definir % de aprobación</button>' };
       }
-      return null;
+      return rechazo(c);
     }
     if (c.estado === 'recibido') {
       return { tono: 'azul', texto: `El archivo tiene ${c.registros.length} registros (${c.nProcede} proceden) y aún no se cruza con la BBDD de facturas.`, boton: '<button type="button" class="btn" data-accion="cruzar">Ejecutar cruce</button>' };
@@ -212,7 +212,164 @@
     }
     if (c.estado === 'pendiente_aprobacion') return { tono: 'naranja', texto: 'Esperando que el jefe de facturación defina el % de aprobación del archivo.', boton: '' };
     if (c.estado === 'nc_emitida') return { tono: 'violeta', texto: 'NC emitidas y aceptadas por SUNAT. Falta el correo de NC al auditor (llega en la entrega 4).', boton: '' };
-    return null;
+    return rechazo(c);
+  }
+
+  function rechazo(c) {
+    if (c.estado !== 'rechazado' || !c.aprobacion) return null;
+    return { tono: 'rojo', texto: `Archivo rechazado por ${c.aprobacion.aprobador} el ${fmt.fechaHora(c.aprobacion.fecha)}. Motivo: "${c.aprobacion.comentario.replace(/\.$/, '')}". No se emiten NC.`, boton: '' };
+  }
+
+  // ---------- Aprobación del archivo (jefe de facturación, solo post descarga) ----------
+  let aprob = null; // { numero, pct, comentario, confirmar, error }
+
+  function ultimoAprobado() {
+    return window.DB.aprobacion.filter((a) => a.resultado === 'aprobado').sort((a, b) => b.fecha.localeCompare(a.fecha))[0] || null;
+  }
+
+  function impactoHtml(c) {
+    const imp = window.S.impacto(c, aprob.pct || 0);
+    const total = window.S.impacto(c, 100);
+    return `
+      <div class="impacto__cifra"><span class="etiqueta">Aves a reconocer</span><b class="mono">${fmt.num(imp.und)}</b><span class="sutil mono">de ${fmt.num(total.und)}</span></div>
+      <div class="impacto__cifra"><span class="etiqueta">Kg a reconocer</span><b class="mono">${fmt.num(imp.kg, 2)}</b><span class="sutil mono">de ${fmt.num(total.kg, 2)}</span></div>
+      <div class="impacto__cifra impacto__cifra--monto"><span class="etiqueta">V.NET/DEV estimado</span><b class="mono">${fmt.soles(imp.monto)}</b><span class="sutil mono">de ${fmt.soles(total.monto)}</span></div>
+      ${imp.sinFactura.length ? `<p class="impacto__aviso">${icono('alerta')} ${imp.sinFactura.length} registro sin factura no entra en el cálculo. Se reconocerá con el mismo % cuando se resuelva.</p>` : ''}`;
+  }
+
+  function tablaImpactoHtml(c) {
+    const imp = window.S.impacto(c, aprob.pct || 0);
+    return `<table class="tabla tabla--mini">
+      <thead><tr><th>Placa</th><th>Sexo</th><th>Factura</th><th class="der">UND</th><th class="der">KG</th><th class="der">UND ${aprob.pct || 0} %</th><th class="der">KG ${aprob.pct || 0} %</th><th class="der">V.NET/DEV</th></tr></thead>
+      <tbody>${imp.filas.map((x) => `<tr>
+        <td class="mono">${esc(x.registro.placa)}</td><td>${esc(x.registro.sexo)}</td>
+        <td class="mono">${x.factura ? esc(x.factura.nro_factura) : chipCruce(x.cruce?.estado || 'SIN FACTURA EN BBDD')}</td>
+        <td class="der mono">${fmt.num(x.registro.und_reconocer)}</td><td class="der mono">${fmt.num(x.registro.kg_reconocer, 2)}</td>
+        <td class="der mono fuerte">${fmt.num(x.und)}</td><td class="der mono fuerte">${fmt.num(x.kg, 2)}</td>
+        <td class="der mono">${x.monto == null ? '—' : fmt.soles(x.monto)}</td></tr>`).join('')}
+      </tbody>
+      <tfoot><tr><td colspan="5">Total con factura</td><td class="der mono">${fmt.num(imp.und)}</td><td class="der mono">${fmt.num(imp.kg, 2)}</td><td class="der mono">${fmt.soles(imp.monto)}</td></tr></tfoot>
+    </table>`;
+  }
+
+  function accionesHtml(c) {
+    if (aprob.confirmar === 'aprobar') {
+      const imp = window.S.impacto(c, aprob.pct);
+      return `<div class="confirmar confirmar--verde" role="alert">
+        <p>Vas a aprobar el <b>${aprob.pct} %</b> del reporte ${c.numero}: ${fmt.num(imp.und)} aves, ${fmt.num(imp.kg, 2)} kg y ${fmt.soles(imp.monto)} estimados. El caso pasa a SAP.</p>
+        <div class="confirmar__botones"><button type="button" class="btn" data-aprob="confirmar-aprobar">Confirmar aprobación</button><button type="button" class="btn btn--sec" data-aprob="cancelar">Cancelar</button></div>
+      </div>`;
+    }
+    if (aprob.confirmar === 'rechazar') {
+      return `<div class="confirmar confirmar--rojo" role="alert">
+        <p>Vas a <b>rechazar</b> el reporte ${c.numero}. No se emitirán NC y el auditor verá tu comentario.</p>
+        <div class="confirmar__botones"><button type="button" class="btn btn--peligro" data-aprob="confirmar-rechazar">Confirmar rechazo</button><button type="button" class="btn btn--sec" data-aprob="cancelar">Cancelar</button></div>
+      </div>`;
+    }
+    return `<div class="confirmar__botones">
+      <button type="button" class="btn" data-aprob="aprobar" ${aprob.pct >= 1 && aprob.pct <= 100 ? '' : 'disabled'}>Aprobar ${aprob.pct || 0} %</button>
+      <button type="button" class="btn btn--sec btn--sec-rojo" data-aprob="rechazar">Rechazar</button>
+    </div>`;
+  }
+
+  function seccionAprobacion(c) {
+    if (!aprob || aprob.numero !== c.numero) {
+      const ult = ultimoAprobado();
+      aprob = { numero: c.numero, pct: ult ? ult.porcentaje : 100, comentario: '', confirmar: null, error: '' };
+    }
+    const ult = ultimoAprobado();
+    const ultRep = ult && window.DB.reporte.find((r) => r.id === ult.reporte_id);
+    return `<section class="seccion" id="sec-aprobacion">
+      ${seccionCab('POR APROBAR', 'Aprobación del archivo completo', 'El % se aplica a todos los registros del archivo')}
+      <div class="panel aprob">
+        <form class="aprob__control" id="form-aprob" autocomplete="off">
+          <div class="campo">
+            <label class="etiqueta" for="pct">% de aprobación</label>
+            <div class="aprob__pct">
+              <input type="range" id="pct-rango" min="0" max="100" step="5" value="${aprob.pct}" aria-label="% de aprobación (deslizador)">
+              <span class="aprob__num"><input type="number" id="pct" min="1" max="100" step="1" value="${aprob.pct}" inputmode="numeric"><span>%</span></span>
+            </div>
+            <div class="aprob__rapidos" role="group" aria-label="Porcentajes frecuentes">
+              ${[25, 50, 70, 100].map((v) => `<button type="button" class="pildora ${aprob.pct === v ? 'pildora--activa' : ''}" data-pct="${v}">${v} %</button>`).join('')}
+            </div>
+            ${ult ? `<span class="sutil">Último % aprobado: ${ult.porcentaje} % (reporte ${ultRep.numero}, ${fmt.fecha(ult.fecha)}).</span>` : ''}
+          </div>
+          <div class="campo">
+            <label class="etiqueta" for="comentario">Comentario</label>
+            <textarea id="comentario" rows="3" placeholder="Opcional al aprobar. Obligatorio si rechazas." aria-describedby="comentario-error">${esc(aprob.comentario)}</textarea>
+            <span class="campo__error" id="comentario-error">${esc(aprob.error)}</span>
+          </div>
+          <div id="aprob-acciones">${accionesHtml(c)}</div>
+        </form>
+        <div class="aprob__impacto">
+          <div class="impacto" id="aprob-impacto" aria-live="polite">${impactoHtml(c)}</div>
+          <p class="sutil" style="margin:0">V.NET/DEV = (valor neto ÷ peso neto de la factura) × kg devueltos. Fórmula por confirmar.</p>
+        </div>
+        <div class="aprob__detalle">
+          <span class="etiqueta">Detalle por registro</span>
+          <div class="tabla-wrap" id="aprob-tabla">${tablaImpactoHtml(c)}</div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  function montarAprobacion(vista, c) {
+    const form = vista.querySelector('#form-aprob');
+    if (!form) return;
+    const refrescar = (acciones = true) => {
+      vista.querySelector('#aprob-impacto').innerHTML = impactoHtml(c);
+      vista.querySelector('#aprob-tabla').innerHTML = tablaImpactoHtml(c);
+      vista.querySelectorAll('[data-pct]').forEach((b) => b.classList.toggle('pildora--activa', Number(b.dataset.pct) === aprob.pct));
+      vista.querySelector('#comentario-error').textContent = aprob.error;
+      if (acciones) vista.querySelector('#aprob-acciones').innerHTML = accionesHtml(c);
+    };
+    const fijarPct = (v, origen) => {
+      aprob.pct = Math.max(0, Math.min(100, Math.round(Number(v) || 0)));
+      aprob.confirmar = null;
+      if (origen !== 'rango') vista.querySelector('#pct-rango').value = aprob.pct;
+      if (origen !== 'numero') vista.querySelector('#pct').value = aprob.pct;
+      refrescar();
+    };
+    form.addEventListener('submit', (e) => e.preventDefault());
+    vista.querySelector('#pct-rango').addEventListener('input', (e) => fijarPct(e.target.value, 'rango'));
+    vista.querySelector('#pct').addEventListener('input', (e) => fijarPct(e.target.value, 'numero'));
+    vista.querySelector('#comentario').addEventListener('input', (e) => {
+      aprob.comentario = e.target.value;
+      if (aprob.error && aprob.comentario.trim()) { aprob.error = ''; refrescar(false); }
+    });
+    form.addEventListener('click', (e) => {
+      const r = e.target.closest('[data-pct]');
+      if (r) { fijarPct(r.dataset.pct); return; }
+      const a = e.target.closest('[data-aprob]')?.dataset.aprob;
+      if (!a) return;
+      const actor = window.App.usuario().nombre;
+      if (a === 'aprobar') aprob.confirmar = 'aprobar';
+      else if (a === 'rechazar') {
+        if (!aprob.comentario.trim()) {
+          aprob.error = 'Escribe el motivo del rechazo: el auditor lo verá en su caso.';
+          refrescar();
+          vista.querySelector('#comentario').focus();
+          return;
+        }
+        aprob.confirmar = 'rechazar';
+      } else if (a === 'cancelar') aprob.confirmar = null;
+      else if (a === 'confirmar-aprobar') {
+        window.S.aprobar(c.numero, aprob.pct, aprob.comentario.trim(), actor);
+        window.App.toast(`Reporte ${c.numero} aprobado al ${aprob.pct} %. Pasa a SAP.`);
+        aprob = null;
+        window.App.render();
+        return;
+      } else if (a === 'confirmar-rechazar') {
+        window.S.rechazar(c.numero, aprob.comentario.trim(), actor);
+        window.App.toast(`Reporte ${c.numero} rechazado.`, 'rojo');
+        aprob = null;
+        window.App.render();
+        return;
+      }
+      refrescar();
+      const btn = vista.querySelector('#aprob-acciones button');
+      if (btn) btn.focus();
+    });
   }
 
   function render({ params }) {
@@ -250,6 +407,8 @@
         ${perfil === 'auditor' ? '<p class="sutil" style="margin:0">Vista de solo lectura.</p>' : ''}
       </section>
 
+      ${perfil === 'jefe' && c.estado === 'pendiente_aprobacion' ? seccionAprobacion(c) : ''}
+
       <section class="seccion" id="sec-registros">
         ${seccionCab('REGISTROS', 'Registros y cruce con facturas SAP', `Fecha de saca ±1 día · razón social · sexo · unidades`)}
         <div class="panel panel--tabla">${tablaRegistros(c, puedeEditar)}</div>
@@ -276,7 +435,17 @@
       subtitulo: `${FLUJO[c.flujo].label} · ${c.auditor.nombre} · saca del ${fmt.fecha(c.fecha_saca)}`,
       html,
       montar(vista) {
+        montarAprobacion(vista, c);
+        if (params[1] === 'aprobar' && vista.querySelector('#sec-aprobacion')) {
+          requestAnimationFrame(() => vista.querySelector('#sec-aprobacion').scrollIntoView());
+        }
         vista.addEventListener('click', (e) => {
+          if (e.target.closest('#form-aprob')) return;
+          if (e.target.closest('[data-accion="ir-aprobacion"]')) {
+            vista.querySelector('#sec-aprobacion').scrollIntoView({ behavior: 'smooth' });
+            vista.querySelector('#pct').focus({ preventScroll: true });
+            return;
+          }
           const t = e.target.closest('[data-toggle]');
           if (t) {
             const id = Number(t.dataset.toggle);

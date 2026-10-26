@@ -26,7 +26,7 @@
   function etapasCaso(c) {
     const ev = (tipo) => c.eventos.find((e) => e.tipo === tipo);
     const ultimo = (tipo) => [...c.eventos].reverse().find((e) => e.tipo === tipo);
-    const orden = window.U.ESTADO_CASO[c.estado].orden;
+    const conNc = ['nc_emitida', 'cerrado'].includes(c.estado);
     const conCruce = !['recibido'].includes(c.estado);
     const pasoSap = ['con_observaciones', 'en_sap', 'nc_emitida', 'cerrado'].includes(c.estado);
     const llenos = c.porEstado['LLENADO'] || 0;
@@ -52,15 +52,16 @@
       const a = c.aprobacion;
       pasos.push({
         nombre: 'Aprobación del jefe', icono: 'aprobar',
-        estado: a ? 'hecho' : c.estado === 'pendiente_aprobacion' ? 'espera' : 'pend',
-        fecha: a?.fecha, desc: a ? `Aprobado al ${a.porcentaje} %` : c.estado === 'pendiente_aprobacion' ? 'Esperando % de aprobación' : 'Pendiente',
+        estado: a ? (a.resultado === 'rechazado' ? 'alerta' : 'hecho') : c.estado === 'pendiente_aprobacion' ? 'espera' : 'pend',
+        fecha: a?.fecha,
+        desc: a ? (a.resultado === 'rechazado' ? 'Rechazado' : `Aprobado al ${a.porcentaje} %`) : c.estado === 'pendiente_aprobacion' ? 'Esperando % de aprobación' : 'Pendiente',
       });
     }
 
     let eSap = 'pend';
     if (c.estado === 'en_sap') eSap = c.errores.length ? 'alerta' : 'actual';
     else if (c.estado === 'con_observaciones') eSap = 'alerta';
-    else if (orden >= 6) eSap = 'hecho';
+    else if (conNc) eSap = 'hecho';
     const traslados = c.docs.filter((d) => d.etapa === 'traslado' && d.estado === 'completado').length;
     pasos.push({
       nombre: 'Pedido · entrega · traslado', icono: 'sap', estado: eSap, fecha: pasoSap ? ev('sap')?.fecha_hora : null,
@@ -68,8 +69,8 @@
     });
 
     pasos.push({
-      nombre: 'NC emitidas · SUNAT', icono: 'nc', estado: orden >= 6 ? 'hecho' : 'pend', fecha: ultimo('sunat')?.fecha_hora,
-      desc: orden >= 6 ? `${c.ncs.length} NC aceptadas` : c.ncs.length ? `${c.ncs.length} NC emitidas hasta ahora` : 'Pendiente',
+      nombre: 'NC emitidas · SUNAT', icono: 'nc', estado: conNc ? 'hecho' : 'pend', fecha: ultimo('sunat')?.fecha_hora,
+      desc: conNc ? `${c.ncs.length} NC aceptadas` : c.ncs.length ? `${c.ncs.length} NC emitidas hasta ahora` : 'Pendiente',
     });
 
     pasos.push({
@@ -77,6 +78,10 @@
       estado: c.correo ? 'hecho' : c.estado === 'nc_emitida' ? 'actual' : 'pend', fecha: c.correo?.fecha_envio,
       desc: c.correo ? 'Respuesta en el mismo hilo' : c.estado === 'nc_emitida' ? 'Listo para enviar' : 'Pendiente',
     });
+    // Archivo rechazado: las etapas siguientes no aplican.
+    if (c.estado === 'rechazado') {
+      pasos.slice(3).forEach((p) => Object.assign(p, { estado: 'na', fecha: null, desc: 'No aplica (rechazado)' }));
+    }
     return pasos;
   }
 

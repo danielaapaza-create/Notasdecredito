@@ -51,6 +51,7 @@
     en_sap: { label: 'En SAP', tono: 'celeste', orden: 5 },
     nc_emitida: { label: 'NC emitida', tono: 'violeta', orden: 6 },
     cerrado: { label: 'Cerrado (correo enviado)', tono: 'verde', orden: 7 },
+    rechazado: { label: 'Rechazado', tono: 'rojo', orden: 8 },
   };
 
   // Estados del cruce por registro.
