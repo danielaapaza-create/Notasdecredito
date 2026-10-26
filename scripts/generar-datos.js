@@ -23,12 +23,13 @@ function addDays(iso, d) {
   dt.setUTCDate(dt.getUTCDate() + d);
   return dt.toISOString().slice(0, 10);
 }
-function isoWeek(iso) {
+// Semana del año que usan los auditores: empieza el domingo y la semana 1 contiene el 1 de enero
+// (ej.: 15.10.26 → semana 42; 18.10.26, domingo → semana 43).
+function semana(iso) {
   const d = new Date(iso + 'T12:00:00Z');
-  const day = (d.getUTCDay() + 6) % 7;
-  d.setUTCDate(d.getUTCDate() - day + 3);
-  const firstThu = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-  return 1 + Math.round(((d - firstThu) / 86400000 - 3 + ((firstThu.getUTCDay() + 6) % 7)) / 7);
+  const ene1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1, 12));
+  const inicio = new Date(ene1); inicio.setUTCDate(1 - ene1.getUTCDay());
+  return Math.floor((d - inicio) / (7 * 86400000)) + 1;
 }
 const ddmmyy = (iso) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(2, 4)}`;
 const ts = (iso, hh, mm) => `${iso}T${pad(hh, 2)}:${pad(mm, 2)}:00`;
@@ -145,11 +146,13 @@ function muertosPost() { return int(2, 22); }
 
 for (const [i, p] of PLANES.entries()) {
   const aud = p.flujo === 'despacho' ? auditor[0] : auditor[1];
-  const sem = isoWeek(p.saca);
-  const etiqueta = p.flujo === 'despacho' ? 'Mort Prov' : 'Evaluación Postdescarga';
+  const sem = semana(p.saca);
   const rep = {
     id: i + 1, numero: p.numero, flujo: p.flujo, fecha_saca: p.saca, fecha_envio: p.envio, auditor_id: aud.id,
-    asunto_correo: `Envío de reporte ${p.numero}. Semana ${sem}_${etiqueta}_${ddmmyy(p.saca)}`,
+    // Formatos reales: el de post descarga no trae número de reporte.
+    asunto_correo: p.flujo === 'despacho'
+      ? `Envío de reporte ${p.numero}. Semana ${sem}_Mort Prov_${ddmmyy(p.saca)}`
+      : `Envío de reporte. Semana ${sem}_ Mort Prov_${ddmmyy(p.saca)} (Postdescarga)`,
     archivo: p.flujo === 'despacho' ? `Mort Pro ${p.numero} Ayacucho y Apurímac.xlsx` : `EVALUACIÓN POSTDESCARGA ${p.numero}.xlsx`,
     estado: p.estado,
   };
