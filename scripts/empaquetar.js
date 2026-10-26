@@ -10,7 +10,7 @@ const leer = (p) => fs.readFileSync(path.join(raiz, p), 'utf8');
 
 const index = leer('index.html');
 const fuentes = index.match(/<link rel="stylesheet" href="https:\/\/fonts[^>]+>/)[0];
-const scripts = [...index.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1]);
+const scripts = [...index.matchAll(/<script src="([^"]+)"><\/script>/g)].map((m) => m[1].split('?')[0]);
 const logo = 'data:image/svg+xml;base64,' + Buffer.from(leer('assets/logo.svg')).toString('base64');
 
 // Sin <html>/<head>/<body>: el visor de Artifacts agrega el esqueleto.

@@ -7,6 +7,9 @@ Sin backend: todo corre en el navegador con datos ficticios.
 ## Cómo verlo
 
 Abrir `index.html` en el navegador (doble clic). No necesita servidor ni instalación.
+Antes de publicar cambios de CSS/JS, `node scripts/sellar-version.js` agrega `?v=…` a los archivos de `index.html`
+para que el navegador no use versiones viejas de la caché.
+
 Si se prefiere un servidor local: `python3 -m http.server 8000` y abrir <http://localhost:8000>.
 
 Arriba a la derecha, **Ver como** cambia el perfil (analista, jefe, auditor, cliente) y con él el menú.

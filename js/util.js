@@ -120,7 +120,7 @@
     obra: '<path d="M3 21h18"/><path d="M5 21V10l7-6 7 6v11"/><path d="M9 21v-6h6v6"/>',
   };
   function icono(nombre) {
-    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[nombre] || ''}</svg>`;
+    return `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[nombre] || ''}</svg>`;
   }
 
   window.U = { HOY, fmt, esc, normalizarRazonSocial, semana, asuntoReporte, ESTADO_CASO, ESTADO_CRUCE, FLUJO, chip, chipEstadoCaso, chipCruce, chipFlujo, sinDato, icono };
