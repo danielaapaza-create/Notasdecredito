@@ -89,8 +89,8 @@
             <select id="f-flujo" name="flujo">${opt('', 'Todos', filtros.flujo)}${Object.entries(FLUJO).map(([k, v]) => opt(k, v.label, filtros.flujo)).join('')}</select></label>`}
           <label class="campo"><span class="etiqueta">Estado</span>
             <select id="f-estado" name="estado">${opt('', 'Todos', filtros.estado)}${Object.entries(ESTADO_CASO).map(([k, v]) => opt(k, v.label, filtros.estado)).join('')}</select></label>
-          <label class="campo"><span class="etiqueta">Auditor</span>
-            <select id="f-auditor" name="auditor">${opt('', 'Todos', filtros.auditor)}${window.DB.auditor.map((a) => opt(String(a.id), a.nombre, filtros.auditor)).join('')}</select></label>
+          ${perfil === 'auditor' ? '' : `<label class="campo"><span class="etiqueta">Auditor</span>
+            <select id="f-auditor" name="auditor">${opt('', 'Todos', filtros.auditor)}${window.DB.auditor.map((a) => opt(String(a.id), a.nombre, filtros.auditor)).join('')}</select></label>`}
           <label class="campo"><span class="etiqueta">Saca desde</span><input id="f-desde" name="desde" type="date" value="${filtros.desde}"></label>
           <label class="campo"><span class="etiqueta">Saca hasta</span><input id="f-hasta" name="hasta" type="date" value="${filtros.hasta}"></label>
           <label class="campo campo--ancho"><span class="etiqueta">Buscar</span>
@@ -103,6 +103,7 @@
         <div class="panel__cab">
           <h2 class="panel__titulo">${flujoFijo ? `Casos de ${FLUJO[flujoFijo].label.toLowerCase()}` : 'Todos los casos'}</h2>
           <span class="panel__nota" id="nota-resultados">${lista.length} de ${base.length} casos</span>
+          ${perfil === 'auditor' ? '<a class="btn btn--mini" href="#/subir">Subir reporte</a>' : ''}
         </div>
         <div class="tabla-wrap">
           <table class="tabla">

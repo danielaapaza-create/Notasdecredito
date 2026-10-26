@@ -408,11 +408,34 @@
     if (i >= 0) DB.extraccion_sap.splice(i, 1);
   }
 
+  // ---------- Portal auditor ----------
+  const siguienteNumeroReporte = () => Math.max(...DB.reporte.map((r) => r.numero)) + 1;
+
+  // Crea el caso a partir del archivo que sube el auditor (estado Recibido).
+  function crearReporte({ flujo, fechaSaca, archivo, filas, auditorId, actor, comentario }) {
+    const numero = siguienteNumeroReporte();
+    const rep = {
+      id: Math.max(...DB.reporte.map((r) => r.id)) + 1, numero, flujo, fecha_saca: fechaSaca, fecha_envio: ahora(), auditor_id: auditorId,
+      asunto_correo: window.U.asuntoReporte(flujo, numero, fechaSaca), archivo, estado: 'recibido',
+    };
+    DB.reporte.push(rep);
+    let id = Math.max(...DB.registro.map((r) => r.id));
+    for (const f of filas) {
+      DB.registro.push({ id: ++id, reporte_id: rep.id, ...f, procede: f.und_reconocer > 0 && f.kg_reconocer > 0 });
+    }
+    const aud = auditores[auditorId];
+    const proceden = filas.filter((f) => f.und_reconocer > 0 && f.kg_reconocer > 0).length;
+    registrarEvento(rep, actor, 'recepcion', `${aud.nombre} envió "${archivo}" (${filas.length} registros).${comentario ? ` Comentario: "${comentario}"` : ''}`);
+    registrarEvento(rep, 'Sistema', 'recepcion', `Archivo leído: ${filas.length} registros, ${proceden} proceden a NC. En cola para el cruce.`);
+    return rep;
+  }
+
   window.S = {
     auditores, facturas, cruceDe, reportePorNumero, registrosDe, docsDe, eventosDe, porcentaje,
     caso, casos, motivoAtencion, severidad, saldoFacturas,
     impacto, ejecutarCruce, asignarFactura, pasarASap, aprobar, rechazar,
     ETAPAS, ETAPA_LABEL, avanceSap, registrosSap, avanzarSap, filasCorreo, enviarCorreo,
     calendarioExtraccion, afectadosPorDia, cargarExtraccion, descartarDuplicado,
+    siguienteNumeroReporte, crearReporte,
   };
 })();

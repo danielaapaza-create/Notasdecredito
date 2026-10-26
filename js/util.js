@@ -42,6 +42,20 @@
   // "Corporación Aldajar Eirl" y "CORPORACION ALDAJAR E.I.R.L." → "CORPORACION ALDAJAR" (regla del cruce)
   const normalizarRazonSocial = (s) => window.Cruce.normalizar(s);
 
+  // Semana del asunto: empieza el domingo y la semana 1 contiene el 1 de enero (18.10.26 → 43).
+  function semana(iso) {
+    const d = new Date(iso + 'T12:00:00Z');
+    const ene1 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1, 12));
+    const inicio = new Date(ene1); inicio.setUTCDate(1 - ene1.getUTCDay());
+    return Math.floor((d - inicio) / (7 * 86400000)) + 1;
+  }
+  // Asunto del correo del auditor (formatos reales; post descarga no trae número).
+  function asuntoReporte(flujo, numero, fechaSaca) {
+    return flujo === 'despacho'
+      ? `Envío de reporte ${numero}. Semana ${semana(fechaSaca)}_Mort Prov_${fmt.fechaCorta(fechaSaca)}`
+      : `Envío de reporte. Semana ${semana(fechaSaca)}_ Mort Prov_${fmt.fechaCorta(fechaSaca)} (Postdescarga)`;
+  }
+
   // Estados del caso (reporte) con su color de chip.
   const ESTADO_CASO = {
     recibido: { label: 'Recibido', tono: 'gris', orden: 1 },
@@ -109,5 +123,5 @@
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[nombre] || ''}</svg>`;
   }
 
-  window.U = { HOY, fmt, esc, normalizarRazonSocial, ESTADO_CASO, ESTADO_CRUCE, FLUJO, chip, chipEstadoCaso, chipCruce, chipFlujo, sinDato, icono };
+  window.U = { HOY, fmt, esc, normalizarRazonSocial, semana, asuntoReporte, ESTADO_CASO, ESTADO_CRUCE, FLUJO, chip, chipEstadoCaso, chipCruce, chipFlujo, sinDato, icono };
 })();
