@@ -42,7 +42,11 @@ En **Facturación diaria** se carga un día faltante (el 24-oct resuelve el regi
 descartan cargas duplicadas. Con el perfil auditor, **Subir reporte** guía el envío (tipo → archivo → vista previa con
 validaciones → enviado) y crea el caso en estado Recibido, listo para que el analista ejecute el cruce.
 El auditor es externo: en **Mis envíos** y en el detalle solo ve lo que envió, un estado simple
-(Enviado / En revisión / Respondido / Rechazado) y el correo de NC que recibió; nada del cruce, SAP, saldo ni % de aprobación. Los cambios viven en memoria:
+(Enviado / En revisión / Respondido / Rechazado) y el correo de NC que recibió; nada del cruce, SAP, saldo ni % de aprobación.
+
+**Dashboard** (analista y jefe): NC emitidas, kg y V.NET/DEV, días de ciclo, % de cruce automático, kg por semana de saca
+(despacho y post descarga), clientes, mortalidad por plantel y resultado del cruce; cada gráfico tiene tooltip y vista en tabla.
+**Mis devoluciones** (cliente, ejemplo: Pollería Mercado Andahuaylas): sus NC emitidas, camiones en evaluación y saldo devuelto por factura. Los cambios viven en memoria:
 al recargar la página se vuelve a los datos de ejemplo.
 
 ## Datos (forma de tablas SQL)

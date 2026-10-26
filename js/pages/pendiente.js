@@ -4,8 +4,6 @@
   const { esc, icono } = window.U;
 
   const PROXIMAS = {
-    dashboard: { titulo: 'Dashboard', sub: 'Analítica de mortalidad y notas de crédito.', entrega: 6, items: ['Aves y kg reconocidos por semana, cliente y plantel', 'Tiempo de ciclo del caso'] },
-    devoluciones: { titulo: 'Mis devoluciones', sub: 'Portal del cliente.', entrega: 6, items: ['Devoluciones del cliente y su estado'] },
   };
 
   function render({ ruta, params }) {
