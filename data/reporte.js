@@ -1,0 +1,16 @@
+// Tabla "reporte" (12 filas). Generado por scripts/generar-datos.js: no editar a mano.
+window.DB = window.DB || {};
+DB.reporte = [
+  {"id":1,"numero":280,"flujo":"despacho","fecha_saca":"2026-10-05","fecha_envio":"2026-10-06T08:12:00","auditor_id":1,"asunto_correo":"Envío de reporte 280. Semana 41_Mort Prov_05.10.26","archivo":"Mort Pro 280 Ayacucho y Apurímac.xlsx","estado":"cerrado"},
+  {"id":2,"numero":281,"flujo":"postdescarga","fecha_saca":"2026-10-05","fecha_envio":"2026-10-07T18:40:00","auditor_id":2,"asunto_correo":"Envío de reporte 281. Semana 41_Evaluación Postdescarga_05.10.26","archivo":"EVALUACIÓN POSTDESCARGA 281.xlsx","estado":"cerrado"},
+  {"id":3,"numero":282,"flujo":"despacho","fecha_saca":"2026-10-08","fecha_envio":"2026-10-09T07:55:00","auditor_id":1,"asunto_correo":"Envío de reporte 282. Semana 41_Mort Prov_08.10.26","archivo":"Mort Pro 282 Ayacucho y Apurímac.xlsx","estado":"cerrado"},
+  {"id":4,"numero":283,"flujo":"despacho","fecha_saca":"2026-10-12","fecha_envio":"2026-10-13T08:30:00","auditor_id":1,"asunto_correo":"Envío de reporte 283. Semana 42_Mort Prov_12.10.26","archivo":"Mort Pro 283 Ayacucho y Apurímac.xlsx","estado":"nc_emitida"},
+  {"id":5,"numero":284,"flujo":"postdescarga","fecha_saca":"2026-10-12","fecha_envio":"2026-10-14T19:05:00","auditor_id":2,"asunto_correo":"Envío de reporte 284. Semana 42_Evaluación Postdescarga_12.10.26","archivo":"EVALUACIÓN POSTDESCARGA 284.xlsx","estado":"en_sap"},
+  {"id":6,"numero":285,"flujo":"despacho","fecha_saca":"2026-10-13","fecha_envio":"2026-10-14T08:05:00","auditor_id":1,"asunto_correo":"Envío de reporte 285. Semana 42_Mort Prov_13.10.26","archivo":"Mort Pro 285 Ayacucho y Apurímac.xlsx","estado":"con_observaciones"},
+  {"id":7,"numero":286,"flujo":"despacho","fecha_saca":"2026-10-14","fecha_envio":"2026-10-15T07:48:00","auditor_id":1,"asunto_correo":"Envío de reporte 286. Semana 42_Mort Prov_14.10.26","archivo":"Mort Pro 286 Ayacucho y Apurímac.xlsx","estado":"en_sap"},
+  {"id":8,"numero":287,"flujo":"despacho","fecha_saca":"2026-10-15","fecha_envio":"2026-10-16T08:20:00","auditor_id":1,"asunto_correo":"Envío de reporte 287. Semana 42_Mort Prov_15.10.26","archivo":"Mort Pro 287 Ayacucho y Apurímac.xlsx","estado":"cerrado"},
+  {"id":9,"numero":288,"flujo":"postdescarga","fecha_saca":"2026-10-19","fecha_envio":"2026-10-21T18:15:00","auditor_id":2,"asunto_correo":"Envío de reporte 288. Semana 43_Evaluación Postdescarga_19.10.26","archivo":"EVALUACIÓN POSTDESCARGA 288.xlsx","estado":"pendiente_aprobacion"},
+  {"id":10,"numero":289,"flujo":"despacho","fecha_saca":"2026-10-21","fecha_envio":"2026-10-22T08:02:00","auditor_id":1,"asunto_correo":"Envío de reporte 289. Semana 43_Mort Prov_21.10.26","archivo":"Mort Pro 289 Ayacucho y Apurímac.xlsx","estado":"en_cruce"},
+  {"id":11,"numero":290,"flujo":"postdescarga","fecha_saca":"2026-10-23","fecha_envio":"2026-10-25T17:50:00","auditor_id":2,"asunto_correo":"Envío de reporte 290. Semana 43_Evaluación Postdescarga_23.10.26","archivo":"EVALUACIÓN POSTDESCARGA 290.xlsx","estado":"pendiente_aprobacion"},
+  {"id":12,"numero":291,"flujo":"despacho","fecha_saca":"2026-10-25","fecha_envio":"2026-10-26T08:41:00","auditor_id":1,"asunto_correo":"Envío de reporte 291. Semana 43_Mort Prov_25.10.26","archivo":"Mort Pro 291 Ayacucho y Apurímac.xlsx","estado":"recibido"}
+];
