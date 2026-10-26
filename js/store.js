@@ -201,9 +201,218 @@
     registrarEvento(rep, actor, 'observacion', `Jefe de facturación rechazó el archivo: "${comentario}"`);
   }
 
+  // ---------- SAP: etapas por registro ----------
+  const ETAPAS = ['pedido', 'entrega', 'traslado', 'nc', 'sunat'];
+  const ETAPA_LABEL = { pedido: 'Pedido VA01', entrega: 'Entrega VL01N', traslado: 'Traslado MIGO 321', nc: 'NC', sunat: 'SUNAT' };
+  const PREFIJO = { pedido: '20', entrega: '40', traslado: '49' };
+  const ESTADOS_SAP = ['en_sap', 'con_observaciones', 'nc_emitida', 'cerrado'];
+
+  function siguienteNumero(etapa) {
+    const nums = DB.documento_sap.filter((d) => d.etapa === etapa && d.numero).map((d) => Number(d.numero));
+    return String(nums.length ? Math.max(...nums) + 7 : Number(PREFIJO[etapa] + '00000001'));
+  }
+
+  // Estado SAP de un registro: documentos, siguiente etapa y error (si lo hay).
+  function avanceSap(registroId) {
+    const docs = docsDe(registroId);
+    const error = docs.find((d) => d.estado === 'error') || null;
+    const hechas = ETAPAS.filter((e) => docs.some((d) => d.etapa === e && d.estado === 'completado'));
+    const siguiente = error ? error.etapa : ETAPAS.find((e) => !hechas.includes(e)) || null;
+    return { docs, error, hechas, siguiente, completo: hechas.length === ETAPAS.length };
+  }
+
+  // Registros que están (o estuvieron) en SAP: los que tienen factura en casos aprobados.
+  function registrosSap() {
+    return DB.reporte.filter((r) => ESTADOS_SAP.includes(r.estado)).flatMap((rep) => {
+      const pct = porcentaje(rep) ?? 100;
+      return registrosDe(rep.id).map((reg) => ({ rep, reg, cruce: cruceDe(reg.id), pct }))
+        .filter((x) => x.cruce && x.cruce.estado === 'LLENADO' && x.cruce.factura_id)
+        .map((x) => ({ ...x, factura: facturas[x.cruce.factura_id], avance: avanceSap(x.reg.id) }));
+    });
+  }
+
+  function crearLineaNc(fac, und, kg) {
+    const nros = DB.factura_sap.filter((f) => f.tipo === 'NC').map((f) => Number(f.nro_factura.split('--')[1]));
+    const docs = DB.factura_sap.filter((f) => f.tipo !== 'FA').map((f) => Number(f.doc_facturacion));
+    const fila = {
+      ...fac, id: Math.max(...DB.factura_sap.map((f) => f.id)) + 1, fecha_factura: window.U.HOY,
+      nro_factura: `07-F030--${String(Math.max(...nros) + 1).padStart(7, '0')}`, doc_facturacion: String(Math.max(...docs) + 11),
+      ctd_factura: -und, peso_neto: -kg, valor_neto: -Math.round((fac.valor_neto / fac.peso_neto) * kg * 100) / 100,
+      tipo: 'NC', factura_ref: fac.nro_factura,
+    };
+    DB.factura_sap.push(fila);
+    facturas[fila.id] = fila;
+    return fila;
+  }
+
+  // Registra la siguiente etapa de un registro (o reprocesa la que tiene error).
+  function avanzarSap(registroId, actor) {
+    const reg = DB.registro.find((r) => r.id === registroId);
+    const rep = DB.reporte.find((r) => r.id === reg.reporte_id);
+    const av = avanceSap(registroId);
+    if (av.completo) return null;
+    const fecha = ahora();
+    if (av.error) {
+      Object.assign(av.error, { estado: 'completado', numero: siguienteNumero(av.error.etapa), fecha, mensaje: 'Liberado y reprocesado' });
+      registrarEvento(rep, actor, 'sap', `${ETAPA_LABEL[av.error.etapa]} de ${reg.placa} (${reg.sexo.toLowerCase()}) reprocesado tras liberar el bloqueo.`);
+      return av.error;
+    }
+    const etapa = av.siguiente;
+    let numero, mensaje;
+    if (etapa === 'nc' || etapa === 'sunat') {
+      const cr = cruceDe(registroId);
+      const pct = porcentaje(rep) ?? 100;
+      if (etapa === 'nc') {
+        const und = Math.round((cr.und * pct) / 100);
+        const kg = Math.round(cr.kg * pct) / 100;
+        const linea = crearLineaNc(facturas[cr.factura_id], und, kg);
+        numero = linea.doc_facturacion;
+        mensaje = 'NC creada desde el pool de facturación';
+      } else {
+        const nc = av.docs.find((d) => d.etapa === 'nc');
+        numero = DB.factura_sap.find((f) => f.doc_facturacion === nc.numero).nro_factura;
+        mensaje = 'Aceptada por SUNAT';
+      }
+    } else {
+      numero = siguienteNumero(etapa);
+      mensaje = { pedido: 'Pedido de devolución creado', entrega: 'Entrega y entrada de mercancías registradas', traslado: 'Mov. 321: calidad → libre utilización' }[etapa];
+    }
+    const doc = { id: Math.max(0, ...DB.documento_sap.map((d) => d.id)) + 1, registro_id: registroId, etapa, numero, fecha, clase: etapa === 'pedido' ? 'ZRE3' : null, estado: 'completado', mensaje };
+    DB.documento_sap.push(doc);
+
+    // ¿Todos los registros del caso llegaron a SUNAT? → NC emitida.
+    if (etapa === 'sunat' && rep.estado === 'en_sap') {
+      const pendientes = registrosSap().filter((x) => x.rep.id === rep.id && !x.avance.completo);
+      if (!pendientes.length) {
+        rep.estado = 'nc_emitida';
+        const n = registrosSap().filter((x) => x.rep.id === rep.id).length;
+        registrarEvento(rep, 'SUNAT', 'sunat', `${n} NC aceptadas por SUNAT. Listo para el correo al auditor.`);
+      }
+    }
+    return doc;
+  }
+
+  // ---------- Correo de NC ----------
+  // Filas del correo: una por NC emitida (columnas en el orden del correo actual).
+  function filasCorreo(c) {
+    if (c.correo) return c.correo.filas;
+    return c.ncs.map((d) => {
+      const reg = DB.registro.find((r) => r.id === d.registro_id);
+      const cr = cruceDe(reg.id);
+      const f = facturas[cr.factura_id];
+      const nc = DB.factura_sap.find((x) => x.doc_facturacion === d.numero);
+      const und = -nc.ctd_factura;
+      const kg = -nc.peso_neto;
+      return {
+        fecha_factura: f.fecha_factura, nro_factura: f.nro_factura, ctd_factura: f.ctd_factura, peso_neto: f.peso_neto,
+        placa: reg.placa, gr: reg.guia, cliente: f.cliente_codigo, razon_social: f.razon_social, denom_centro: f.denom_centro,
+        centro: f.centro, material: f.material, factura: f.doc_facturacion, lote: f.lote, und, kg,
+        prom: Math.round((kg / und) * 100) / 100, v_net_dev: Math.round((f.valor_neto / f.peso_neto) * kg * 100) / 100,
+      };
+    });
+  }
+
+  function enviarCorreo(numero, actor) {
+    const rep = reportePorNumero(numero);
+    const c = caso(rep);
+    const correo = {
+      id: DB.correo.length + 1, reporte_id: rep.id, para: c.auditor.correo, cc: 'facturacion@sanfernando.example',
+      asunto: `RE: ${rep.asunto_correo}`, fecha_envio: ahora(), enviado_por: actor, filas: filasCorreo(c),
+    };
+    DB.correo.push(correo);
+    rep.estado = 'cerrado';
+    registrarEvento(rep, actor, 'correo', `Correo de NC enviado a ${correo.para} en respuesta al mismo hilo.`);
+    return correo;
+  }
+
+  // ---------- Facturación diaria (extracción ZSDR005) ----------
+  function calendarioExtraccion(desde = '2026-10-01', hasta = window.U.HOY) {
+    const dias = [];
+    for (let d = new Date(desde + 'T12:00:00Z'); d.toISOString().slice(0, 10) <= hasta; d.setUTCDate(d.getUTCDate() + 1)) {
+      const iso = d.toISOString().slice(0, 10);
+      const cargas = DB.extraccion_sap.filter((e) => e.fecha_facturacion === iso);
+      const lineas = DB.factura_sap.filter((f) => f.fecha_factura === iso);
+      let estado = 'cargado';
+      if (!cargas.length) estado = iso >= window.U.HOY ? 'por_cargar' : 'hueco';
+      else if (cargas.some((e) => e.estado === 'duplicado')) estado = 'duplicado';
+      dias.push({ fecha: iso, estado, cargas, lineas });
+    }
+    return dias;
+  }
+
+  // Registros sin factura cuya ventana de fechas (saca ±1) incluye este día.
+  function afectadosPorDia(fecha) {
+    return DB.registro.filter((reg) => {
+      const cr = cruceDe(reg.id);
+      if (!cr || cr.estado !== 'SIN FACTURA EN BBDD') return false;
+      const rep = DB.reporte.find((r) => r.id === reg.reporte_id);
+      const dif = Math.abs((new Date(fecha + 'T12:00:00Z') - new Date(rep.fecha_saca + 'T12:00:00Z')) / 86400000);
+      return dif <= 1;
+    });
+  }
+
+  // Simula cargar el Excel de SAP de un día faltante: agrega sus líneas y vuelve a cruzar los registros afectados.
+  function cargarExtraccion(fecha, actor) {
+    const nuevas = [];
+    const sig = { nro: Math.max(...DB.factura_sap.filter((f) => f.tipo === 'FA').map((f) => Number(f.nro_factura.split('--')[1]))),
+      doc: Math.max(...DB.factura_sap.filter((f) => f.tipo === 'FA').map((f) => Number(f.doc_facturacion))),
+      lote: Math.max(...DB.factura_sap.map((f) => Number(f.lote.slice(2)))) };
+    const centros = [...new Map(DB.factura_sap.map((f) => [f.centro, f.denom_centro])).entries()];
+    const linea = (cli, sexo, ctd, i) => {
+      const mat = sexo === 'Macho' ? '45138' : '42243';
+      const [centro, denom] = centros[i % centros.length];
+      const peso = Math.round(ctd * (sexo === 'Macho' ? 2.9 : 2.5) * 100) / 100;
+      const id = Math.max(...DB.factura_sap.map((f) => f.id)) + 1;
+      const fila = {
+        id, fecha_factura: fecha, nro_factura: `01-F030--${String(++sig.nro).padStart(7, '0')}`, doc_facturacion: String(sig.doc += 23),
+        cliente_codigo: cli.codigo, razon_social: cli.razon_social, denom_centro: denom, centro, material: mat,
+        material_desc: sexo === 'Macho' ? 'POLLO VIVO MACHO' : 'POLLO VIVO HEMBRA', sexo, lote: `PG${sig.lote += 9}`,
+        ctd_factura: ctd, peso_neto: peso, valor_neto: Math.round(peso * 8.2 * 100) / 100, placa: null, guia: null, tipo: 'FA', factura_ref: null,
+      };
+      DB.factura_sap.push(fila);
+      facturas[id] = fila;
+      nuevas.push(fila);
+    };
+    // Facturas de los registros que estaban sin factura por este hueco.
+    const afectados = afectadosPorDia(fecha);
+    afectados.forEach((reg, i) => {
+      const cli = DB.cliente.find((c) => window.Cruce.normalizar(c.razon_social) === window.Cruce.normalizar(reg.razon_social));
+      if (cli) linea(cli, reg.sexo, reg.carga_aves, i);
+    });
+    // Resto de la facturación del día.
+    for (let i = 0; i < 8; i++) linea(DB.cliente[(i * 3 + fecha.charCodeAt(9)) % DB.cliente.length], i % 2 ? 'Hembra' : 'Macho', 1850 + ((i * 397) % 1600), i + 1);
+
+    DB.extraccion_sap.push({
+      id: Math.max(...DB.extraccion_sap.map((e) => e.id)) + 1, fecha_facturacion: fecha,
+      archivo: `ZSDR005_RALDAZA_${fecha.replace(/-/g, '')}.xlsx`, fecha_carga: ahora(), filas: nuevas.length, usuario: actor, estado: 'cargado',
+    });
+
+    // Volver a cruzar los afectados.
+    const resueltos = [];
+    for (const reg of afectados) {
+      const rep = DB.reporte.find((r) => r.id === reg.reporte_id);
+      const nuevo = window.Cruce.cruzarRegistro(reg, rep.fecha_saca, DB.factura_sap);
+      const cr = cruceDe(reg.id);
+      Object.assign(cr, nuevo);
+      if (nuevo.estado === 'LLENADO') {
+        resueltos.push(reg);
+        registrarEvento(rep, 'Sistema', 'cruce', `Se cargó la extracción SAP del ${window.U.fmt.fecha(fecha)}: el registro ${reg.placa} (${reg.sexo.toLowerCase()}) ahora tiene factura.`);
+        if (rep.estado === 'con_observaciones' && !caso(rep).pendientes.length) rep.estado = 'en_sap';
+      }
+    }
+    return { filas: nuevas.length, resueltos };
+  }
+
+  function descartarDuplicado(id) {
+    const i = DB.extraccion_sap.findIndex((e) => e.id === id && e.estado === 'duplicado');
+    if (i >= 0) DB.extraccion_sap.splice(i, 1);
+  }
+
   window.S = {
     auditores, facturas, cruceDe, reportePorNumero, registrosDe, docsDe, eventosDe, porcentaje,
     caso, casos, motivoAtencion, severidad, saldoFacturas,
     impacto, ejecutarCruce, asignarFactura, pasarASap, aprobar, rechazar,
+    ETAPAS, ETAPA_LABEL, avanceSap, registrosSap, avanzarSap, filasCorreo, enviarCorreo,
+    calendarioExtraccion, afectadosPorDia, cargarExtraccion, descartarDuplicado,
   };
 })();

@@ -494,6 +494,90 @@ a.kpi:hover { transform: translateY(-2px); box-shadow: var(--sombra-flot); }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .toast--rojo { border-left-color: var(--sf-rojo); }
 
+/* ---------- Documentos SAP ---------- */
+.embudo { display: flex; align-items: stretch; gap: 8px; flex-wrap: wrap; }
+.embudo__paso { flex: 1 1 140px; background: var(--superficie); border-radius: var(--radio-l); box-shadow: var(--sombra); padding: 12px 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.embudo__paso b { font-size: 26px; font-weight: 600; color: #A9B6C8; line-height: 1.1; }
+.embudo__paso--activo b { color: var(--celeste); }
+.embudo__paso--error { border: 1.5px dashed #F3B9B5; box-shadow: none; background: transparent; }
+.embudo__paso--error.embudo__paso--activo { background: var(--rojo-bg); border-style: solid; }
+.embudo__paso--error.embudo__paso--activo b { color: var(--sf-rojo); }
+.embudo__flecha { align-self: center; color: var(--texto-3); font-size: 22px; font-weight: 700; }
+.tabla--sap td { vertical-align: top; }
+.fila-grupo td { background: var(--superficie-2); border-top: 2px solid var(--borde); padding: 8px 12px; }
+.grupo-caso:first-of-type .fila-grupo td { border-top: none; }
+.fila-grupo__cont { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.fila-grupo__acc { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.doc-celda { display: inline-flex; align-items: center; gap: 4px; border-radius: 8px; padding: 3px 8px; font-size: 12px; white-space: nowrap; }
+.doc-celda svg { width: 13px; height: 13px; }
+.doc-celda--ok { background: var(--verde-bg); color: var(--verde); }
+.doc-celda--pend { color: var(--texto-3); border: 1px dashed var(--borde); }
+.doc-celda--sig { border-color: var(--celeste); color: var(--celeste-txt); font-weight: 700; }
+.doc-celda--error { background: var(--rojo-bg); color: var(--rojo); font-weight: 800; }
+.fila-error td { background: #FFF8F7; }
+.msg-error { color: var(--rojo); font-size: 11.5px; font-weight: 700; max-width: 170px; margin-top: 4px; line-height: 1.3; }
+.col-registro { min-width: 170px; max-width: 220px; font-size: 13px; }
+.tabla--sap td, .tabla--sap th { padding-left: 9px; padding-right: 9px; }
+.tabla--sap .btn { white-space: nowrap; }
+.th-sub { font-size: 9.5px; letter-spacing: .06em; color: var(--texto-3); font-weight: 700; }
+.tabla--sap .doc-celda { font-size: 11.5px; padding: 3px 6px; }
+
+/* ---------- Facturación diaria ---------- */
+.kpis--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fact-grid { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 20px; align-items: start; }
+.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.cal__cab { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--texto-3); text-align: center; padding-bottom: 2px; }
+.cal__dia {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; text-align: left; cursor: pointer;
+  border: 1.5px solid var(--borde-suave); background: var(--superficie-2); border-radius: 12px; padding: 7px 8px; font: inherit; color: var(--texto);
+  border-top: 4px solid var(--tono, var(--borde));
+}
+.cal__dia:hover { border-color: var(--sf-azul); border-top-color: var(--tono, var(--sf-azul)); }
+.cal__dia--cargado { --tono: var(--verde-kpi); }
+.cal__dia--duplicado { --tono: var(--naranja-kpi); background: var(--naranja-bg); }
+.cal__dia--hueco { --tono: var(--sf-rojo); background: var(--rojo-bg); }
+.cal__dia--por_cargar { --tono: #A9B6C8; }
+.cal__dia--sel { box-shadow: 0 0 0 2.5px var(--marino); }
+.cal__num { font-size: 15px; font-weight: 600; color: var(--marino); }
+.cal__estado { font-size: 11px; font-weight: 800; color: var(--tono); }
+.cal__dia--cargado .cal__estado { color: var(--verde); }
+.cal__dia--duplicado .cal__estado { color: var(--naranja); }
+.cal__dia--hueco .cal__estado { color: var(--rojo); }
+.cal__dia--por_cargar .cal__estado { color: var(--texto-3); }
+.cal__filas { font-size: 10.5px; color: var(--texto-3); }
+.cal__leyenda { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+.resolver-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.resolver { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-radius: 14px; padding: 12px 14px; background: var(--tono-bg); border-left: 5px solid var(--tono); }
+.resolver > div { flex: 1 1 220px; min-width: 0; }
+.resolver p { margin: 2px 0 0; font-size: 13px; color: var(--texto-2); overflow-wrap: anywhere; }
+.resolver--rojo { --tono: var(--sf-rojo); --tono-bg: var(--rojo-bg); }
+.resolver--naranja { --tono: var(--naranja-kpi); --tono-bg: var(--naranja-bg); }
+.resolver .btn svg { width: 16px; height: 16px; }
+.cargas { display: flex; flex-direction: column; gap: 8px; }
+.carga { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; border: 1px solid var(--borde-suave); border-radius: 12px; padding: 10px 12px; }
+.carga > svg { width: 22px; height: 22px; color: var(--sf-azul); flex: none; }
+.carga > div { display: flex; flex-direction: column; flex: 1 1 240px; min-width: 0; overflow-wrap: anywhere; }
+.carga--dup { background: var(--naranja-bg); border-color: #F6D2A3; }
+
+/* ---------- Correo de NC ---------- */
+.correo { display: flex; flex-direction: column; gap: 16px; border-top: 4px solid var(--verde-kpi); }
+.correo__cab { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 14px; margin: 0; padding-bottom: 14px; border-bottom: 1px solid var(--borde); font-size: 14px; }
+.correo__cab dt { font-size: 10.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--texto-3); padding-top: 3px; }
+.correo__cab dd { margin: 0; overflow-wrap: anywhere; }
+.correo__cuerpo { display: flex; flex-direction: column; gap: 12px; font-family: Calibri, 'Segoe UI', var(--f-texto); font-size: 14.5px; color: #1f1f1f; }
+.correo__cuerpo p { margin: 0; }
+.tabla-correo { border-collapse: collapse; font-size: 11.5px; font-family: Calibri, 'Segoe UI', Arial, sans-serif; }
+.tabla-correo th { background: #1F4E79; color: #fff; font-weight: 700; padding: 5px 7px; border: 1px solid #9BB7D4; white-space: nowrap; text-align: left; }
+.tabla-correo td { padding: 4px 7px; border: 1px solid #C9D6E4; white-space: nowrap; background: #fff; }
+.tabla-correo td.celda-amarilla { background: #FFF200; }
+.tabla-correo tfoot td { background: #EAF1F8; font-weight: 700; }
+.correo__cita { margin: 4px 0 0; padding: 10px 14px; border-left: 3px solid var(--borde); color: var(--texto-2); font-size: 13px; overflow-wrap: anywhere; }
+.correo__acciones { display: flex; gap: 10px 12px; align-items: center; flex-wrap: wrap; padding-top: 14px; border-top: 1px dashed var(--borde); }
+.correo__acciones .sutil { flex: 1 1 260px; }
+.correo__acciones .confirmar { flex: 1 1 100%; }
+.btn svg { width: 16px; height: 16px; }
+.toast--azul { border-left-color: var(--celeste); }
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; z-index: 50; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px));
@@ -507,6 +591,8 @@ a.kpi:hover { transform: translateY(-2px); box-shadow: var(--sombra-flot); }
 /* ---------- Responsive ---------- */
 @media (max-width: 1180px) {
   .kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kpis--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .fact-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 900px) {
   .app, .app.colapsado { grid-template-columns: minmax(0, 1fr); }
@@ -536,6 +622,11 @@ a.kpi:hover { transform: translateY(-2px); box-shadow: var(--sombra-flot); }
 @media (max-width: 720px) {
   .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kpi__num { font-size: 26px; }
+  .cal { gap: 4px; }
+  .cal__dia { padding: 5px 4px; border-radius: 9px; }
+  .cal__filas { display: none; }
+  .cal__estado { font-size: 9.5px; }
+  .embudo__flecha { display: none; }
   .aprob-card__cifras { grid-template-columns: minmax(0, 1fr); }
   .impacto { grid-template-columns: minmax(0, 1fr); }
   /* Cinta vertical en celular */

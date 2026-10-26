@@ -211,13 +211,84 @@
       return { tono: 'rojo', texto: `${c.pendientes.length} registro sin factura: se consultó al auditor. Los demás siguen en SAP.`, boton: '<button type="button" class="btn btn--sec" data-accion="ver-pendientes">Ver pendientes</button>' };
     }
     if (c.estado === 'pendiente_aprobacion') return { tono: 'naranja', texto: 'Esperando que el jefe de facturación defina el % de aprobación del archivo.', boton: '' };
-    if (c.estado === 'nc_emitida') return { tono: 'violeta', texto: 'NC emitidas y aceptadas por SUNAT. Falta el correo de NC al auditor (llega en la entrega 4).', boton: '' };
+    if (c.estado === 'nc_emitida') return { tono: 'violeta', texto: `${c.ncs.length} NC emitidas y aceptadas por SUNAT. Falta enviar el correo de NC al auditor.`, boton: '<button type="button" class="btn" data-accion="ir-correo">Preparar correo</button>' };
+    if (c.estado === 'en_sap') return { tono: 'azul', texto: 'Los registros avanzan en SAP: pedido, entrega, traslado, NC y SUNAT.', boton: `<a class="btn btn--sec" href="#/documentos/${c.numero}">Ver en Documentos SAP</a>` };
     return rechazo(c);
   }
 
   function rechazo(c) {
     if (c.estado !== 'rechazado' || !c.aprobacion) return null;
     return { tono: 'rojo', texto: `Archivo rechazado por ${c.aprobacion.aprobador} el ${fmt.fechaHora(c.aprobacion.fecha)}. Motivo: "${c.aprobacion.comentario.replace(/\.$/, '')}". No se emiten NC.`, boton: '' };
+  }
+
+  // ---------- Correo de NC al auditor (respuesta al mismo hilo) ----------
+  let correoConfirmar = false;
+  const COLUMNAS_CORREO = [
+    ['fecha_factura', 'Fecha factura'], ['nro_factura', 'NRO. FACTURA'], ['ctd_factura', 'Ctd.factura UME'], ['peso_neto', 'Peso neto'],
+    ['placa', 'PLACA'], ['gr', 'GR'], ['cliente', 'CLIENTE'], ['razon_social', 'Razón Social: Dest.Merc.'], ['denom_centro', 'Denom.Centro'],
+    ['centro', 'Centro'], ['material', 'Material'], ['factura', 'Factura'], ['lote', 'Lote'], ['und', 'UND'], ['kg', 'KG'], ['prom', 'PROM'],
+    ['v_net_dev', 'V.NET/DEV'],
+  ];
+  const fechaSap = (iso) => iso.split('-').reverse().join('.');
+  function valorCorreo(f, k) {
+    if (k === 'fecha_factura') return fechaSap(f[k]);
+    if (k === 'ctd_factura' || k === 'und') return fmt.num(f[k]);
+    if (k === 'peso_neto' || k === 'kg' || k === 'prom' || k === 'v_net_dev') return fmt.num(f[k], 2);
+    return f[k];
+  }
+  function tsvCorreo(filas) {
+    return [COLUMNAS_CORREO.map(([, h]) => h).join('\t'), ...filas.map((f) => COLUMNAS_CORREO.map(([k]) => valorCorreo(f, k)).join('\t'))].join('\n');
+  }
+
+  function seccionCorreo(c, perfil) {
+    const filas = window.S.filasCorreo(c);
+    const enviado = c.correo;
+    const repetidas = {};
+    filas.forEach((f) => { repetidas[f.nro_factura] = (repetidas[f.nro_factura] || 0) + 1; });
+    const remitente = enviado ? enviado.enviado_por : (window.DB.usuario.find((u) => u.perfil === 'analista') || {}).nombre;
+    const tot = (k) => filas.reduce((a, f) => a + f[k], 0);
+    const puedeEnviar = perfil === 'analista' && c.estado === 'nc_emitida';
+    const amarillas = new Set(['nro_factura', 'factura']);
+    return `<section class="seccion" id="sec-correo">
+      ${seccionCab('CORREO', enviado ? 'Correo de NC enviado' : 'Correo de NC al auditor', 'Respuesta en el mismo hilo del reporte')}
+      <div class="panel correo">
+        <dl class="correo__cab">
+          <dt>De</dt><dd>${esc(remitente)} &lt;facturacion@sanfernando.example&gt;</dd>
+          <dt>Para</dt><dd class="mono">${esc(enviado ? enviado.para : c.auditor.correo)}</dd>
+          <dt>CC</dt><dd class="mono">${esc(enviado ? enviado.cc : 'facturacion@sanfernando.example')}</dd>
+          <dt>Asunto</dt><dd><b>RE: ${esc(c.asunto_correo)}</b></dd>
+          ${enviado ? `<dt>Enviado</dt><dd class="mono">${fmt.fechaHora(enviado.fecha_envio)}</dd>` : ''}
+        </dl>
+        <div class="correo__cuerpo">
+          <p>Buenas noches, se realizaron las siguientes NC:</p>
+          <div class="tabla-wrap"><table class="tabla-correo" id="tabla-correo">
+            <thead><tr>${COLUMNAS_CORREO.map(([, h]) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+            <tbody>${filas.map((f) => `<tr>${COLUMNAS_CORREO.map(([k]) => {
+              const num = ['ctd_factura', 'peso_neto', 'und', 'kg', 'prom', 'v_net_dev'].includes(k);
+              const am = amarillas.has(k) && repetidas[f.nro_factura] > 1;
+              return `<td class="${num ? 'der' : ''} ${am ? 'celda-amarilla' : ''}">${esc(valorCorreo(f, k))}</td>`;
+            }).join('')}</tr>`).join('')}</tbody>
+            <tfoot><tr><td colspan="13">Total</td><td class="der">${fmt.num(tot('und'))}</td><td class="der">${fmt.num(tot('kg'), 2)}</td><td></td><td class="der">${fmt.num(tot('v_net_dev'), 2)}</td></tr></tfoot>
+          </table></div>
+          <p>Saludos,<br>${esc(remitente)}<br>Facturación · San Fernando</p>
+          <blockquote class="correo__cita">
+            <b>De:</b> ${esc(c.auditor.contacto)} &lt;${esc(c.auditor.correo)}&gt;<br>
+            <b>Enviado:</b> ${fmt.fechaHora(c.fecha_envio)}<br>
+            <b>Asunto:</b> ${esc(c.asunto_correo)}<br>
+            <b>Adjunto:</b> <span class="mono">${esc(c.archivo)}</span>
+          </blockquote>
+        </div>
+        <div class="correo__acciones" id="correo-acciones">
+          ${correoConfirmar && puedeEnviar ? `<div class="confirmar confirmar--verde" role="alert">
+              <p>Vas a enviar ${filas.length} NC a <b>${esc(c.auditor.correo)}</b> en respuesta al correo "${esc(c.asunto_correo)}". El caso queda cerrado.</p>
+              <div class="confirmar__botones"><button type="button" class="btn" data-correo="confirmar">${icono('envios')} Confirmar envío</button><button type="button" class="btn btn--sec" data-correo="cancelar">Cancelar</button></div>
+            </div>` : `
+            <button type="button" class="btn btn--sec" data-correo="copiar">Copiar tabla</button>
+            ${puedeEnviar ? `<button type="button" class="btn" data-correo="enviar">${icono('envios')} Enviar</button>` : ''}
+            <span class="sutil">${enviado ? `Enviado por ${esc(enviado.enviado_por)}.` : 'V.NET/DEV = (valor neto ÷ peso neto) × KG. PROM = KG ÷ UND. En amarillo, la factura con 2 filas (macho y hembra).'}</span>`}
+        </div>
+      </div>
+    </section>`;
   }
 
   // ---------- Aprobación del archivo (jefe de facturación, solo post descarga) ----------
@@ -377,7 +448,7 @@
     if (!rep) {
       return { titulo: 'Caso no encontrado', subtitulo: '', html: `<div class="panel"><p>No existe el reporte ${esc(params[0] || '')}. <a href="#/casos">Volver a Casos</a></p></div>` };
     }
-    if (casoAnterior !== rep.numero) { filtroReg = 'todos'; abiertos = new Set(); casoAnterior = rep.numero; }
+    if (casoAnterior !== rep.numero) { filtroReg = 'todos'; abiertos = new Set(); casoAnterior = rep.numero; correoConfirmar = false; }
     const perfil = window.App.perfil;
     const c = window.S.caso(rep);
     const puedeEditar = perfil === 'analista' && ['en_cruce', 'con_observaciones'].includes(c.estado);
@@ -408,6 +479,7 @@
       </section>
 
       ${perfil === 'jefe' && c.estado === 'pendiente_aprobacion' ? seccionAprobacion(c) : ''}
+      ${['nc_emitida', 'cerrado'].includes(c.estado) ? seccionCorreo(c, perfil) : ''}
 
       <section class="seccion" id="sec-registros">
         ${seccionCab('REGISTROS', 'Registros y cruce con facturas SAP', `Fecha de saca ±1 día · razón social · sexo · unidades`)}
@@ -436,11 +508,36 @@
       html,
       montar(vista) {
         montarAprobacion(vista, c);
-        if (params[1] === 'aprobar' && vista.querySelector('#sec-aprobacion')) {
-          requestAnimationFrame(() => vista.querySelector('#sec-aprobacion').scrollIntoView());
-        }
+        const ancla = { aprobar: '#sec-aprobacion', correo: '#sec-correo' }[params[1]];
+        if (ancla && vista.querySelector(ancla)) requestAnimationFrame(() => vista.querySelector(ancla).scrollIntoView());
         vista.addEventListener('click', (e) => {
           if (e.target.closest('#form-aprob')) return;
+          const co = e.target.closest('[data-correo]')?.dataset.correo;
+          if (co === 'copiar') {
+            const texto = tsvCorreo(window.S.filasCorreo(c));
+            const seleccionar = () => {
+              const r = document.createRange();
+              r.selectNodeContents(vista.querySelector('#tabla-correo'));
+              const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r);
+              window.App.toast('Tabla seleccionada: cópiala con Ctrl+C.', 'azul');
+            };
+            try {
+              navigator.clipboard.writeText(texto).then(() => window.App.toast('Tabla copiada. Pégala en Outlook o Excel.'), seleccionar);
+            } catch { seleccionar(); }
+            return;
+          }
+          if (co === 'enviar' || co === 'cancelar') { correoConfirmar = co === 'enviar'; window.App.render(); return; }
+          if (co === 'confirmar') {
+            const correo = window.S.enviarCorreo(c.numero, window.App.usuario().nombre);
+            correoConfirmar = false;
+            window.App.toast(`Correo enviado a ${correo.para}. Caso cerrado.`);
+            window.App.render();
+            return;
+          }
+          if (e.target.closest('[data-accion="ir-correo"]')) {
+            vista.querySelector('#sec-correo').scrollIntoView({ behavior: 'smooth' });
+            return;
+          }
           if (e.target.closest('[data-accion="ir-aprobacion"]')) {
             vista.querySelector('#sec-aprobacion').scrollIntoView({ behavior: 'smooth' });
             vista.querySelector('#pct').focus({ preventScroll: true });

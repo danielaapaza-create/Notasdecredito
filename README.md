@@ -33,7 +33,10 @@ assets/logo.svg       Logo de San Fernando (vector)
 
 En el detalle del caso (perfil analista) se puede **ejecutar el cruce** (reporte 291), **asignar la factura** de un registro
 en conflicto o por revisar (reporte 289) y **pasar a SAP** / **enviar a aprobación**. Con el perfil jefe, en **Por aprobar** se define el % del archivo
-(reportes 288 y 290) y se aprueba o rechaza (el rechazo pide comentario). Los cambios viven en memoria:
+(reportes 288 y 290) y se aprueba o rechaza (el rechazo pide comentario). En **Documentos SAP** se registra cada etapa
+(o se reprocesa un error) hasta SUNAT; con todas las NC aceptadas, el caso permite **enviar el correo de NC** al auditor.
+En **Facturación diaria** se carga un día faltante (el 24-oct resuelve el registro sin factura del reporte 290) y se
+descartan cargas duplicadas. Los cambios viven en memoria:
 al recargar la página se vuelve a los datos de ejemplo.
 
 ## Datos (forma de tablas SQL)
