@@ -26,7 +26,7 @@ data/*.js             Datos ficticios, una tabla por archivo
 scripts/generar-datos.js  Regenera data/*.js (node scripts/generar-datos.js)
 scripts/verificar-cruce.js  Ejecuta el algoritmo de cruce sobre los datos y lo compara con la tabla cruce
 scripts/empaquetar.js     Genera un único HTML para compartir
-assets/logo.svg       Marcador de posición del logo (reemplazar por el oficial)
+assets/logo.svg       Logo de San Fernando (vector)
 ```
 
 ## Acciones simuladas
