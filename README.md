@@ -40,7 +40,9 @@ en conflicto o por revisar (reporte 289) y **pasar a SAP** / **enviar a aprobaci
 (o se reprocesa un error) hasta SUNAT; con todas las NC aceptadas, el caso permite **enviar el correo de NC** al auditor.
 En **Facturación diaria** se carga un día faltante (el 24-oct resuelve el registro sin factura del reporte 290) y se
 descartan cargas duplicadas. Con el perfil auditor, **Subir reporte** guía el envío (tipo → archivo → vista previa con
-validaciones → enviado) y crea el caso en estado Recibido, listo para que el analista ejecute el cruce. Los cambios viven en memoria:
+validaciones → enviado) y crea el caso en estado Recibido, listo para que el analista ejecute el cruce.
+El auditor es externo: en **Mis envíos** y en el detalle solo ve lo que envió, un estado simple
+(Enviado / En revisión / Respondido / Rechazado) y el correo de NC que recibió; nada del cruce, SAP, saldo ni % de aprobación. Los cambios viven en memoria:
 al recargar la página se vuelve a los datos de ejemplo.
 
 ## Datos (forma de tablas SQL)

@@ -119,7 +119,7 @@
       ${cr && abierto ? `<tr class="fila-detalle"><td colspan="${cols}">
         <div class="detalle">
           <p class="detalle__texto">${chipCruce(cr.estado)} ${esc(cr.detalle)}</p>
-          ${window.App.perfil === 'auditor' ? '' : candidatas(r, cr, c, puedeAsignar)}
+          ${candidatas(r, cr, c, puedeAsignar)}
           ${docsRegistro(r)}
         </div>
       </td></tr>` : ''}`;
@@ -279,7 +279,7 @@
           </blockquote>
         </div>
         <div class="correo__acciones" id="correo-acciones">
-          ${correoConfirmar && puedeEnviar ? `<div class="confirmar confirmar--verde" role="alert">
+          ${perfil === 'auditor' ? '<span class="sutil">Esta respuesta llegó a tu correo, en el mismo hilo de tu reporte.</span>' : correoConfirmar && puedeEnviar ? `<div class="confirmar confirmar--verde" role="alert">
               <p>Vas a enviar ${filas.length} NC a <b>${esc(c.auditor.correo)}</b> en respuesta al correo "${esc(c.asunto_correo)}". El caso queda cerrado.</p>
               <div class="confirmar__botones"><button type="button" class="btn" data-correo="confirmar">${icono('envios')} Confirmar envío</button><button type="button" class="btn btn--sec" data-correo="cancelar">Cancelar</button></div>
             </div>` : `
@@ -444,6 +444,8 @@
   }
 
   function render({ params }) {
+    // El auditor (externo) tiene su propia vista, sin información interna.
+    if (window.App.perfil === 'auditor') return window.EnvioAuditor.detalle(params);
     const rep = window.S.reportePorNumero(params[0]);
     if (!rep) {
       return { titulo: 'Caso no encontrado', subtitulo: '', html: `<div class="panel"><p>No existe el reporte ${esc(params[0] || '')}. <a href="#/casos">Volver a Casos</a></p></div>` };
@@ -453,10 +455,10 @@
     const c = window.S.caso(rep);
     const puedeEditar = perfil === 'analista' && ['en_cruce', 'con_observaciones'].includes(c.estado);
     const paso = siguientePaso(c, perfil);
-    const volver = perfil === 'auditor' ? '#/envios' : c.flujo === 'postdescarga' ? '#/postdescarga' : '#/despacho';
+    const volver = c.flujo === 'postdescarga' ? '#/postdescarga' : '#/despacho';
 
     const html = `
-      <a class="volver" href="${volver}">${icono('atras')} ${perfil === 'auditor' ? 'Mis envíos' : FLUJO[c.flujo].label}</a>
+      <a class="volver" href="${volver}">${icono('atras')} ${FLUJO[c.flujo].label}</a>
 
       <section class="panel resumen">
         <div class="panel__cab">
@@ -475,7 +477,6 @@
         </div>
         ${cinta(c)}
         ${paso ? `<div class="siguiente siguiente--${paso.tono}"><p>${esc(paso.texto)}</p>${paso.boton}</div>` : ''}
-        ${perfil === 'auditor' ? '<p class="sutil" style="margin:0">Vista de solo lectura.</p>' : ''}
       </section>
 
       ${perfil === 'jefe' && c.estado === 'pendiente_aprobacion' ? seccionAprobacion(c) : ''}
@@ -487,12 +488,12 @@
       </section>
 
       <div class="dos-col">
-        ${perfil === 'auditor' ? '' : `<section class="seccion">
+        <section class="seccion">
           ${seccionCab('SALDO', 'Saldo devuelto por factura', c.flujo === 'postdescarga' && c.pct == null ? 'Este caso al 100 % hasta la aprobación' : '')}
           <div class="panel panel--tabla">${tablaSaldo(c)}
             <p class="nota-detalle">Una NC puede venir por partes. "Devuelto antes" suma las NC de otros casos sobre el mismo lote. En amarillo, la factura con 2 filas (macho y hembra).</p>
           </div>
-        </section>`}
+        </section>
         <section class="seccion">
           ${seccionCab('HILO', 'Todo lo que pasó con este reporte', `${c.eventos.length} eventos`)}
           <div class="panel">
@@ -582,4 +583,5 @@
 
   window.Pages = window.Pages || {};
   window.Pages.caso = render;
+  window.CasoUI = { seccionCorreo };
 })();
