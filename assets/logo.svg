@@ -1,6 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Logo (marcador de posición)">
-  <!-- Marcador de posición: reemplazar por el logo oficial de San Fernando. -->
-  <circle cx="32" cy="32" r="30" fill="#FFFFFF"/>
-  <circle cx="32" cy="32" r="25" fill="none" stroke="#E1251B" stroke-width="3"/>
-  <text x="32" y="40" text-anchor="middle" font-family="Fredoka, Arial, sans-serif" font-weight="700" font-size="22" fill="#0B57B7">SF</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1670 2000" role="img" aria-label="San Fernando">
+  <rect width="1670" height="2000" fill="#034C97"/>
+  <!-- Ala roja -->
+  <path fill="#D90000" d="M78 260 Q78 128 210 128 L930 128 L738 268 L958 467 L1035 467 L1035 578 C700 700 420 960 278 1345 Q180 1260 78 1215 Z"/>
+  <g fill="#FFFFFF">
+    <!-- Plumas superiores -->
+    <path d="M830 272 L1032 128 L1133 128 L874 312 Z"/>
+    <path d="M918 352 L1233 128 L1334 128 L962 392 Z"/>
+    <!-- Plumas del ala -->
+    <path d="M1093 467 L1152 467 L1152 657 C800 760 500 1050 367 1430 L325 1388 C480 930 760 720 1093 620 Z"/>
+    <path d="M1210 467 L1269 467 L1269 748 C900 820 560 1100 458 1542 L412 1482 C540 1060 860 790 1210 700 Z"/>
+    <!-- Plumas de la cola -->
+    <path d="M78 1280 L137 1315 L137 1865 Q78 1830 78 1760 Z"/>
+    <path d="M195 1355 L253 1402 L253 1890 L195 1888 Z"/>
+    <!-- Cuerpo -->
+    <path d="M1040 408 L1350 188 C1400 155 1502 170 1502 268 L1502 1597 L1303 1240 L1238 1240 L1487 1685 C1530 1760 1480 1890 1365 1890 L312 1890 L312 1457 Q420 1570 494 1717 C520 1200 880 860 1326 798 L1326 408 Z"/>
+  </g>
+  <!-- Ojo -->
+  <circle cx="1415" cy="293" r="28" fill="#034C97"/>
 </svg>
